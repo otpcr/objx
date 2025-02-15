@@ -4,6 +4,7 @@
 "objects"
 
 
+import datetime
 import json
 import typing
 import threading
@@ -31,9 +32,6 @@ class Object:
 
     def __str__(self):
         return str(self.__dict__)
-
-
-"methods"
 
 
 def construct(obj, *args, **kwargs) -> None:
@@ -101,6 +99,10 @@ def fqn(obj) -> str:
     return kin
 
 
+def ident(obj) -> str:
+    return p(fqn(obj),*str(datetime.datetime.now()).split())
+
+
 def items(obj) -> [(str,typing.Any)]:
     if isinstance(obj,type({})):
         return obj.items()
@@ -145,21 +147,26 @@ def hook(objdict) -> Object:
     return obj
 
 
-def load(pth, *args, **kw) -> Object:
+def load(fpt, *args, **kw) -> Object:
     with lock:
         kw["cls"] = Decoder
         kw["object_hook"] = hook
-        with open(pth, "r") as fpt:
-            try:
-                return json.load(fpt, *args, **kw)
-            except json.decoder.JSONDecodeError as ex:
-                raise DecodeError(pth) from ex
+        try:
+            return json.load(fpt, *args, **kw)
+        except json.decoder.JSONDecodeError as ex:
+            raise DecodeError(pth) from ex
 
 
 def loads(string, *args, **kw) -> Object:
     kw["cls"] = Decoder
     kw["object_hook"] = hook
     return json.loads(string, *args, **kw)
+
+
+def read(obj, pth):
+    with open(pth, "r") as fpt:
+        data = load(fpt)
+        update(obj, data)
 
 
 "encoder"
@@ -186,16 +193,30 @@ class Encoder(json.JSONEncoder):
                 return repr(o)
 
 
-def dump(obj, pth, *args, **kw) -> str:
+def dump(obj, fpt, *args, **kw) -> str:
     with lock:
         kw["cls"] = Encoder
-        with open(pth, "w") as fpt:
-            return json.dump(obj, fpt, *args, **kw)
+        return json.dump(obj, fpt, *args, **kw)
 
 
 def dumps(*args, **kw) -> str:
     kw["cls"] = Encoder
     return json.dumps(*args, **kw)
+
+
+def write(obj, pth):
+    cdir(pth)
+    dump(obj, pth, indent=4)
+    Cache.objs[pth] = obj
+    return pth
+
+
+"utility"
+
+
+def cdir(pth) -> None:
+    path = pathlib.Path(pth)
+    path.parent.mkdir(parents=True, exist_ok=True)
 
 
 "interface"

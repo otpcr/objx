@@ -8,8 +8,8 @@ import os
 import time
 
 
-from .objects import Object, fqn, items, update
-from .persist import Workdir, Cache, long, read, skel, store
+from .objects import Object, fqn, items, read, update
+from .persist import Workdir, Cache, long, skel, store
 
 
 p = os.path.join
