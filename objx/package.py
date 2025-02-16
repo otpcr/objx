@@ -91,7 +91,7 @@ class Table:
 def gettable() -> dict:
     try:
         from .lookups import NAMES as names
-    except Exception as ex:
+    except Exception:
         names = {}
     return names
 

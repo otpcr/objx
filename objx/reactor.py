@@ -75,7 +75,7 @@ class Reactor:
             if func:
                 try:
                     evt._thr = launch(func, evt, name=evt.cmd or evt.txt)
-                except Exception as ex:
+                except Exception:
                     evt.ready()
 
     def loop(self) -> None:

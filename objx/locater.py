@@ -9,7 +9,7 @@ import time
 
 
 from .objects import Object, fqn, items, read, update
-from .persist import Workdir, Cache, long, skel, store
+from .persist import Cache, long, skel, store
 
 
 p = os.path.join
@@ -99,3 +99,6 @@ def __dir__():
         'last',
         'search'
     )
+
+
+__all__ = __dir__()

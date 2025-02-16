@@ -7,11 +7,13 @@
 import datetime
 import pathlib
 import json
+import os
 import typing
 import threading
 
 
 lock = threading.RLock()
+p    = os.path.join
 
 
 class DecodeError(Exception):
@@ -152,10 +154,7 @@ def load(fpt, *args, **kw) -> Object:
     with lock:
         kw["cls"] = Decoder
         kw["object_hook"] = hook
-        try:
-            return json.load(fpt, *args, **kw)
-        except json.decoder.JSONDecodeError as ex:
-            raise DecodeError(pth) from ex
+        return json.load(fpt, *args, **kw)
 
 
 def loads(string, *args, **kw) -> Object:
@@ -166,7 +165,10 @@ def loads(string, *args, **kw) -> Object:
 
 def read(obj, pth):
     with open(pth, "r") as fpt:
-        data = load(fpt)
+        try:
+            data = load(fpt)
+        except json.decoder.JSONDecodeError as ex:
+            raise DecodeError(pth) from ex
         update(obj, data)
 
 

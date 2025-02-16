@@ -19,7 +19,7 @@ from objx.command import command
 from objx.locater import last
 from objx.objects import Object, edit, fmt, keys
 from objx.persist import ident, write
-from objx.reactor import Client, Default, Fleet, Message, Reactor
+from objx.reactor import Default, Fleet, Message, Reactor
 from objx.threads import launch
 
 
@@ -237,8 +237,6 @@ class IRC(Reactor, Output):
                 BrokenPipeError
                ) as _ex:
             pass
-        except Exception as ex:
-            later(ex)
 
     def display(self, evt):
         for txt in evt.result:
@@ -415,7 +413,6 @@ class IRC(Reactor, Output):
                     ConnectionResetError,
                     BrokenPipeError
                    ) as ex:
-                later(ex)
                 self.stop()
                 debug("handler stopped")
                 evt = self.event(str(ex))
@@ -441,8 +438,7 @@ class IRC(Reactor, Output):
                     ssl.SSLZeroReturnError,
                     ConnectionResetError,
                     BrokenPipeError
-                   ) as ex:
-                later(ex)
+                   ):
                 self.stop()
                 return
         self.state.last = time.time()
