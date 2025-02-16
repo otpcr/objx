@@ -17,122 +17,39 @@ import _thread
 sys.path.insert(0, os.getcwd())
 
 
-from objx         import fmt
+from objx.command import Commands, command, parse
 from objx.locater import find
+from objx.objects import fmt
+from objx.package import Table
 from objx.persist import Workdir, long, types
+from objx.reactor import Client, Default, Message
+from objx.threads import launch
+
+
+if os.path.exists("mods"):
+    import mods as MODS
+else:
+    MODS = None
+
+
+"defines"
 
 
 cblock      = threading.RLock()
 displaylock = threading.RLock()
 
 
-class Default:
-
-    def __contains__(self, key):
-        return key in dir(self)
-
-    def __getattr__(self, key):
-        return self.__dict__.get(key, "")
-
-    def __iter__(self):
-        return iter(self.__dict__)
-
-    def __len__(self):
-        return len(self.__dict__)
-
-    def __str__(self):
-        return str(self.__dict__)
+cfg      = Default()
+cfg.name = "objx"
 
 
-cfg   = Default()
 p     = os.path.join
-pname = f"{cfg.name}.modules"
 
 
-class Message(Default):
-
-    def __init__(self):
-        Default.__init__(self)
-        self._ready = threading.Event()
-        self._thr   = None
-        self.ctime  = time.time()
-        self.result = {}
-        self.type   = "event"
-        self.txt    = ""
-
-    def __getattr__(self, key):
-        return self.__dict__.get(key, "")
-
-    def done(self) -> None:
-        self.reply("ok")
-
-    def ready(self) -> None:
-        self._ready.set()
-
-    def reply(self, txt) -> None:
-        self.result[time.time()] = txt
-
-    def wait(self) -> None:
-        self._ready.wait()
-        if self._thr:
-            self._thr.join()
-
-
-class Reactor:
+class CLI(Client):
 
     def __init__(self):
-        self.cbs     = {}
-        self.queue   = queue.Queue()
-        self.ready   = threading.Event()
-        self.stopped = threading.Event()
-
-    def callback(self, evt) -> None:
-        with cblock:
-            func = self.cbs.get(evt.type, None)
-            if func:
-                func(evt)
-
-    def loop(self) -> None:
-        evt = None
-        while not self.stopped.is_set():
-            try:
-                evt = self.poll()
-                if evt is None:
-                    break
-                evt.orig = repr(self)
-                self.callback(evt)
-            except (KeyboardInterrupt, EOFError):
-                if evt:
-                    evt.ready()
-                _thread.interrupt_main()
-        self.ready.set()
-
-    def poll(self) -> Message:
-        return self.queue.get()
-
-    def put(self, evt) -> None:
-        self.queue.put(evt)
-
-    def register(self, typ, cbs) -> None:
-        self.cbs[typ] = cbs
-
-    def start(self) -> None:
-        self.stopped.clear()
-        self.ready.clear()
-        self.loop()
-
-    def stop(self) -> None:
-        self.stopped.set()
-        self.queue.put(None)
-
-    def wait(self) -> None:
-        self.ready.wait()
-
-
-class CLI(Reactor):
-
-    def __init__(self):
-        Reactor.__init__(self)
+        Client.__init__(self)
         self.register("command", command)
 
     def announce(self, txt):
@@ -156,108 +73,6 @@ class Console(CLI):
         evt.txt = input("> ")
         evt.type = "command"
         return evt
-
-
-class Commands:
-
-    cmds = {}
-    names = {}
-
-    @staticmethod
-    def add(func, mod=None) -> None:
-        Commands.cmds[func.__name__] = func
-        if mod:
-            Commands.names[func.__name__] = mod.__name__
-
-    @staticmethod
-    def get(cmd) -> typing.Callable:
-        func = Commands.cmds.get(cmd, None)
-        if not func:
-            mname = Commands.names.get(cmd)
-            if mname:
-                mod = Table.load(mname)
-                Commands.scan(mod)
-                func = Commands.cmds.get(cmd)
-        return func
-
-    @staticmethod
-    def getname(cmd) -> None:
-        return Commands.names.get(cmd)
-
-    @staticmethod
-    def scan(mod) -> None:
-        for key, cmdz in inspect.getmembers(mod, inspect.isfunction):
-            if key.startswith("cb"):
-                continue
-            if 'event' in cmdz.__code__.co_varnames:
-                Commands.add(cmdz, mod)
-
-
-"methods"
-
-
-def command(evt) -> None:
-    parse(evt)
-    func = Commands.get(evt.cmd)
-    if func:
-        func(evt)
-        for tme in sorted(evt.result):
-            txt = evt.result.get(tme)
-            print(txt)
-    evt.ready()
-
-
-def parse(obj, txt=None) -> None:
-    if txt is None:
-        if "txt" in dir(obj):
-            txt = obj.txt
-        else:
-            txt = ""
-    args = []
-    obj.args    = []
-    obj.cmd     = ""
-    obj.gets    = Default()
-    obj.index   = None
-    obj.mod     = ""
-    obj.opts    = ""
-    obj.result  = {}
-    obj.sets    = Default()
-    obj.txt     = txt or ""
-    obj.otxt    = obj.txt
-    _nr = -1
-    for spli in obj.otxt.split():
-        if spli.startswith("-"):
-            try:
-                obj.index = int(spli[1:])
-            except ValueError:
-                obj.opts += spli[1:]
-            continue
-        if "==" in spli:
-            key, value = spli.split("==", maxsplit=1)
-            setattr(obj.gets, key, value)
-            continue
-        if "=" in spli:
-            key, value = spli.split("=", maxsplit=1)
-            if key == "mod":
-                if obj.mod:
-                    obj.mod += f",{value}"
-                else:
-                    obj.mod = value
-                continue
-            setattr(obj.sets, key, value)
-            continue
-        _nr += 1
-        if _nr == 0:
-            obj.cmd = spli
-            continue
-        args.append(spli)
-    if args:
-        obj.args = args
-        obj.txt  = obj.cmd or ""
-        obj.rest = " ".join(obj.args)
-        obj.txt  = obj.cmd + " " + obj.rest
-    else:
-        obj.txt = obj.cmd or ""
 
 
 "utilities"
@@ -287,6 +102,11 @@ def forever():
             _thread.interrupt_main()
 
 
+def scan(pkg):
+    for mod in Table.all(pkg):
+        Commands.scan(mod)
+
+
 "scripts"
 
 
@@ -299,9 +119,14 @@ def console():
     cfg.opts = cfg.opts
     if "v" in cfg.opts:
         banner()
+    scan(MODS)
+    for _mod, thr in Table.inits(cfg.init, MODS.__name__):
+        if "w" in cfg.opts:
+            thr.join()
     csl = Console()
     csl.start()
-
+    forever()
+    
 
 def control():
     if len(sys.argv) == 1:
@@ -309,6 +134,7 @@ def control():
     Commands.add(cmd)
     Commands.add(fnd)
     parse(cfg, " ".join(sys.argv[1:]))
+    scan(MODS)
     csl = CLI()
     evt = Message()
     evt.orig = repr(csl)
@@ -363,8 +189,6 @@ def wrap(func):
     finally:
         if old:
             termios.tcsetattr(sys.stdin.fileno(), termios.TCSADRAIN, old)
-    for line in errors():
-        print(line)
 
 
 def main():

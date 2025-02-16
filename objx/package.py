@@ -34,8 +34,8 @@ class Table:
     @staticmethod
     def all(pkg, mods="") -> [types.ModuleType]:
         res = []
-        path = pkg.__path__[0]
-        pname =pkg.__name__
+        path  = pkg.__path__[0]
+        pname = pkg.__name__
         for nme in Table.modules(path):
             if nme in Table.disable:
                 continue
@@ -62,8 +62,6 @@ class Table:
             mods = []
             for name in spl(names):
                 mname = pname + "." + name
-                if not mname:
-                    continue
                 mod = Table.load(mname)
                 if not mod:
                     continue

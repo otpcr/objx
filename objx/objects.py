@@ -5,6 +5,7 @@
 
 
 import datetime
+import pathlib
 import json
 import typing
 import threading
@@ -206,9 +207,8 @@ def dumps(*args, **kw) -> str:
 
 def write(obj, pth):
     cdir(pth)
-    dump(obj, pth, indent=4)
-    Cache.objs[pth] = obj
-    return pth
+    with open(pth, "w") as fpt:
+        dump(obj, fpt, indent=4)
 
 
 "utility"

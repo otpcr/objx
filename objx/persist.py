@@ -12,7 +12,9 @@ import threading
 import typing
 
 
-from .objects import dump, fqn, load, update
+from .objects import dump, fqn, load, read, update, write
+from .objects import read as fread
+from .objects import write as fwrite
 
 
 "defines"
@@ -105,15 +107,14 @@ def ident(obj) -> str:
 
 
 def read(obj, pth):
-    data = load(pth)
-    update(obj, data)
+    fread(obj, pth)
     
 
 def write(obj, pth=None):
     if pth is None:
         pth = store(ident(obj))
     cdir(pth)
-    dump(obj, pth, indent=4)
+    fwrite(obj, pth)
     Cache.objs[pth] = obj
     return pth
 
