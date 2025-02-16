@@ -37,6 +37,9 @@ class Object:
         return str(self.__dict__)
 
 
+"methods"
+
+
 def construct(obj, *args, **kwargs) -> None:
     if args:
         val = args[0]
@@ -208,17 +211,10 @@ def dumps(*args, **kw) -> str:
 
 
 def write(obj, pth):
-    cdir(pth)
-    with open(pth, "w") as fpt:
-        dump(obj, fpt, indent=4)
-
-
-"utility"
-
-
-def cdir(pth) -> None:
     path = pathlib.Path(pth)
     path.parent.mkdir(parents=True, exist_ok=True)
+    with open(pth, "w") as fpt:
+        dump(obj, fpt, indent=4)
 
 
 "interface"
@@ -229,15 +225,15 @@ def __dir__():
         'DecoderError',
         'Object',
         'construct',
-        'dump',
         'dumps',
         'edit',
         'fmt',
         'fqn',
         'items',
         'keys',
-        'load',
         'loads',
+        'read',
         'update',
-        'values'
+        'values',
+        'write'
     )

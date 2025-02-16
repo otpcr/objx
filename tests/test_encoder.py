@@ -10,7 +10,7 @@
 import unittest
 
 
-from objx import Object, dumps
+from objx.objects import Object, dumps
 
 
 class TestEncoder(unittest.TestCase):

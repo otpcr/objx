@@ -1,5 +1,4 @@
 # This file is placed in the Public Domain.
-# pylint: disable=C,I,R,W0401,W0614,W0622
 # ruff: noqa: F403,F405
 
 
@@ -12,17 +11,14 @@ import unittest
 import objx
 
 
-from objx import *
+from objx.objects import *
 
 
 PACKAGE = [
-    '__builtins__',
-    '__cached__',
     '__doc__',
     '__file__',
     '__loader__',
     '__name__',
-    '__path__',
     '__package__',
     '__spec__',
 ]
@@ -72,7 +68,7 @@ DIFF = [
 ]
 
 
-OBJECT = objx
+OBJECT = objx.objects
 
 
 class TestInterface(unittest.TestCase):
