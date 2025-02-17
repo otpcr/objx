@@ -16,7 +16,8 @@ lock = threading.RLock()
 p    = os.path.join
 
 
-class DecodeError(Exception):
+
+class Error(Exception):
 
     pass
 
@@ -36,8 +37,6 @@ class Object:
     def __str__(self):
         return str(self.__dict__)
 
-
-"methods"
 
 
 def construct(obj, *args, **kwargs) -> None:
@@ -132,8 +131,6 @@ def values(obj) -> [typing.Any]:
     return obj.__dict__.values()
 
 
-"decoder"
-
 
 class Decoder(json.JSONDecoder):
 
@@ -154,10 +151,9 @@ def hook(objdict) -> Object:
 
 
 def load(fpt, *args, **kw) -> Object:
-    with lock:
-        kw["cls"] = Decoder
-        kw["object_hook"] = hook
-        return json.load(fpt, *args, **kw)
+    kw["cls"] = Decoder
+    kw["object_hook"] = hook
+    return json.load(fpt, *args, **kw)
 
 
 def loads(string, *args, **kw) -> Object:
@@ -167,15 +163,14 @@ def loads(string, *args, **kw) -> Object:
 
 
 def read(obj, pth):
-    with open(pth, "r") as fpt:
-        try:
-            data = load(fpt)
-        except json.decoder.JSONDecodeError as ex:
-            raise DecodeError(pth) from ex
-        update(obj, data)
+    with lock:
+        with open(pth, "r") as fpt:
+            try:
+                data = load(fpt)
+            except json.decoder.JSONDecodeError as ex:
+                raise Error(pth) from ex
+            update(obj, data)
 
-
-"encoder"
 
 
 class Encoder(json.JSONEncoder):
@@ -200,9 +195,8 @@ class Encoder(json.JSONEncoder):
 
 
 def dump(obj, fpt, *args, **kw) -> str:
-    with lock:
-        kw["cls"] = Encoder
-        return json.dump(obj, fpt, *args, **kw)
+    kw["cls"] = Encoder
+    return json.dump(obj, fpt, *args, **kw)
 
 
 def dumps(*args, **kw) -> str:
@@ -211,18 +205,23 @@ def dumps(*args, **kw) -> str:
 
 
 def write(obj, pth):
-    path = pathlib.Path(pth)
-    path.parent.mkdir(parents=True, exist_ok=True)
-    with open(pth, "w") as fpt:
-        dump(obj, fpt, indent=4)
+    with lock:
+        cdir(pth)
+        with open(pth, "w") as fpt:
+            dump(obj, fpt, indent=4)
 
 
-"interface"
+
+def cdir(path):
+    if not os.path.exists(os.path.dirname(path)):
+        pth = pathlib.Path(path)
+        pth.parent.mkdir(parents=True, exist_ok=True)
+
 
 
 def __dir__():
     return (
-        'DecoderError',
+        'Error',
         'Object',
         'construct',
         'dumps',
